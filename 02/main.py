@@ -45,9 +45,7 @@ def part2(data):
     result = []
     for report in data:
         variations = [report[:i] + report[i+1:] for i in range(len(report))]
-        if any([safe(v) for v in variations]):
-            result.append(True)
-        result.append(False)
+        result.append(True) if any([safe(v) for v in variations]) else result.append(False)
     return sum(result)
 
 

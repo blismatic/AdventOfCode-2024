@@ -5,54 +5,50 @@ from dotenv import load_dotenv
 
 from pprint import pprint
 
-example_input = """xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"""
+example_input = """xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))"""
 
 
-def parse(puzzle_input: str):
+def parse(puzzle_input: str) -> str:
     """Parse input."""
-    result = puzzle_input.split("\n")
+    result = "do()" + puzzle_input + "don't()"
 
     pprint(result[:3])
     print()
     return result
 
-
-def part1(data):
-    """Solve and return the answer to part 1."""
-    pattern = r"mul\(\d+,\d+\)"
-    matches = re.findall(pattern, data[0])
-    result = 0
-    for line in data:
-        matches = re.findall(pattern, line)
-        for match in matches:
-            l, r = match.split(",")
-            l = l[4:]
-            r = r[:-1]
-            result += (int(l) * int(r))
-    return result
-
-
-def part2(data):
-    """Solve and return the answer to part 2."""
-    long_string = "do()" + "".join(data)
-    pattern = r"mul\(\d+,\d+\)"
-    pattern2 = r"do\(\)(.*?)don't\(\)"
+def mul(s: str) -> int:
+    """Helper function to take in a `mul` operation and actually calculate it"""
+    left_num, right_num = s.split(",")
     
-    valid_substrings_to_search = re.findall(pattern2, long_string, re.DOTALL)
-    # print(len(valid_substrings_to_search))
-    result = 0
+    left_num = int(left_num[4:])
+    right_num = int(right_num[:-1])
+    
+    return left_num * right_num
 
+def part1(data: str) -> int:
+    """Solve and return the answer to part 1."""
+    mul_pattern = r"mul\(\d+,\d+\)"
+    
+    mul_instructions = re.findall(mul_pattern, data)
+    return sum([mul(i) for i in mul_instructions])
+
+
+def part2(data: str) -> int:
+    """Solve and return the answer to part 2."""
+    do_dont_pattern = r"do\(\)(.*?)don't\(\)"
+    valid_substrings_to_search = re.findall(do_dont_pattern, data, re.DOTALL)
+    
+    mul_pattern = r"mul\(\d+,\d+\)"
+
+    result = 0
     for substring in valid_substrings_to_search:
-        matches = re.findall(pattern, substring)
-        for match in matches:
-            l, r = match.split(",")
-            l = l[4:]
-            r = r[:-1]
-            result += (int(l) * int(r))
+        mul_instructions = re.findall(mul_pattern, substring)
+        result += sum([mul(instruction) for instruction in mul_instructions])
+        
     return result
 
 
-def solve(puzzle_input) -> tuple:
+def solve(puzzle_input: str) -> tuple:
     """Solve the puzzle for the given input. Returns a tuple containing the answers to part 1 and part 2."""
     data = parse(puzzle_input)
     solution1 = part1(data)

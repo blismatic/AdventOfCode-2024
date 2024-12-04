@@ -18,10 +18,10 @@ def parse(puzzle_input: str) -> str:
 
 def mul(s: str) -> int:
     """Helper function to take in a `mul` operation and actually calculate it"""
-    left_num, right_num = s.split(",")
+    left, right = s.split(",")
     
-    left_num = int(left_num[4:])
-    right_num = int(right_num[:-1])
+    left_num = int(left[4:])
+    right_num = int(right[:-1])
     
     return left_num * right_num
 

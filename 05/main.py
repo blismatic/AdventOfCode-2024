@@ -55,34 +55,67 @@ def parse(puzzle_input: str) -> tuple[dict[int, list[int]], list[int]]:
     print()
     return page_ordering_map, updates
 
-def part1(data):
-    """Solve and return the answer to part 1."""
-    page_ordering_map, updates = data
-    correctly_ordered_updates = []
+def group_updates(mapping: defaultdict, updates: list[list[int]]) -> tuple[list[int], list[int]]:
+    correctly_ordered = []
+    incorrectly_ordered = []
     
     for update in updates:
         # Remove unnecessary dependencies from the map for this particular update
-        temp_page_ordering_map = page_ordering_map.copy()
-        for k in temp_page_ordering_map:
-            temp_page_ordering_map[k] = [v for v in temp_page_ordering_map[k] if v in update]
-        
-        # Look at each page in order. If it has no dependencies, or if its dependencies are a subset of the already processed pages, then we are ok.
-        # Otherwise, skip processing this update any further.
+        temp_mapping = mapping.copy()
+        for key, value in temp_mapping.items():
+            temp_mapping[key] = [v for v in value if v in update]
+            
+        # Look at each page in order. 
+        # # If the page has no dependencies, or if its dependencies are a subset of the already processed pages, then keep processing it
+        # # If there is something wrong with the dependencies, group it in `incorrectly_ordered` and break out
+        # # If you get to the end of the update, group it in `correctly_ordered`
         already_processed_pages = set()
         skip_update = False
         for page in update:
-            if len(temp_page_ordering_map[page]) == 0:
+            if len(temp_mapping[page]) == 0:
                 already_processed_pages.add(page)
-            elif (set(temp_page_ordering_map[page]) <= already_processed_pages):
+            elif (set(temp_mapping[page]) <= already_processed_pages):
                 already_processed_pages.add(page)
             else:
                 skip_update = True
                 break
             
         if skip_update:
-            continue
-  
-        correctly_ordered_updates.append(update)
+            incorrectly_ordered.append(update)
+        else:
+            correctly_ordered.append(update)
+    
+    return correctly_ordered, incorrectly_ordered
+
+def fix_update(mapping: defaultdict, update: list[int]) -> list[int | None]:
+    """Attempt to fix an update according to certain page rules"""
+    # 75,97,47,61,53 becomes 97,75,47,61,53
+    # 61,13,29 becomes 61,29,13
+    # 97,13,75,29,47 becomes 97,75,47,29,13
+    
+    # Remove unnecessary dependencies from the map for this particular update
+    temp_mapping = mapping.copy()
+    for key, value in temp_mapping.items():
+        temp_mapping[key] = [v for v in value if v in update]
+        
+    already_processed_pages = set()
+    for i, page in enumerate(update):
+        if len(temp_mapping[page]) == 0:
+            already_processed_pages.add(page)
+        elif (set(temp_mapping[page]) <= already_processed_pages):
+            already_processed_pages.add(page)
+        else:
+            # swap and try again
+            temp_update = update.copy()
+            temp_update[i], temp_update[(i+1)%len(temp_update)] = temp_update[(i+1)%len(temp_update)], temp_update[i]
+            return fix_update(mapping, temp_update)
+    
+    return update
+    
+
+def part1(data):
+    """Solve and return the answer to part 1.""" 
+    correctly_ordered_updates, _ = group_updates(*data)
     
     middle_page_numbers = [u[len(u)//2] for u in correctly_ordered_updates]
     return sum(middle_page_numbers)
@@ -90,7 +123,13 @@ def part1(data):
 
 def part2(data):
     """Solve and return the answer to part 2."""
-    pass
+    page_ordering_map, updates = data
+    _, incorrectly_ordered_updates = group_updates(page_ordering_map, updates)
+    
+    fixed_updates = [fix_update(page_ordering_map, u) for u in incorrectly_ordered_updates]
+    
+    middle_page_numbers = [u[len(u)//2] for u in fixed_updates]
+    return sum(middle_page_numbers)
 
 
 def solve(puzzle_input) -> tuple:
@@ -104,8 +143,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    # solutions = solve(example_input)
+    solutions = solve(example_input)
     puzzle_input = get_data(day=5, year=2024)
-    solutions = solve(puzzle_input)
+    # solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))

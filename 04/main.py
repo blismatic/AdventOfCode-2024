@@ -34,7 +34,7 @@ def check_neighbor(grid: list[str], x: int, y: int, dx: int, dy: int) -> str:
     try:
         neighbor = grid[y+dy][x+dx]
         return neighbor
-    except IndexError as e:
+    except IndexError:
         return '.'
 
 def part1(data):
@@ -122,8 +122,5 @@ if __name__ == "__main__":
     # solutions = solve(example_input)
     puzzle_input = get_data(day=4, year=2024)
     solutions = solve(puzzle_input)
-    
-    # 3374 was too high
-    # 2114 was too high
 
     print("\n".join(str(solution) for solution in solutions))

@@ -51,7 +51,7 @@ def parse(puzzle_input: str) -> tuple[dict[int, list[int]], list[int]]:
     updates = updates.split("\n")
     updates = [[int(page) for page in update.split(',')] for update in updates]
 
-    # pprint(result[:3])
+    pprint(result[:3])
     print()
     return page_ordering_map, updates
 
@@ -89,28 +89,23 @@ def group_updates(mapping: defaultdict, updates: list[list[int]]) -> tuple[list[
 
 def fix_update(mapping: defaultdict, update: list[int]) -> list[int | None]:
     """Attempt to fix an update according to certain page rules"""
-    # 75,97,47,61,53 becomes 97,75,47,61,53
-    # 61,13,29 becomes 61,29,13
-    # 97,13,75,29,47 becomes 97,75,47,29,13
-    
-    # Remove unnecessary dependencies from the map for this particular update
-    temp_mapping = mapping.copy()
-    for key, value in temp_mapping.items():
-        temp_mapping[key] = [v for v in value if v in update]
+    # Construct the mapping such that only pages from the update are in the keys and values
+    temp_mapping = {}
+    for page in update:
+        temp_mapping[page] = [p for p in mapping[page] if p in update] 
         
+    # Add the pages in correct order by checking their dependencies against a set of already processed pages
+    result = []
     already_processed_pages = set()
-    for i, page in enumerate(update):
-        if len(temp_mapping[page]) == 0:
-            already_processed_pages.add(page)
-        elif (set(temp_mapping[page]) <= already_processed_pages):
-            already_processed_pages.add(page)
-        else:
-            # swap and try again
-            temp_update = update.copy()
-            temp_update[i], temp_update[(i+1)%len(temp_update)] = temp_update[(i+1)%len(temp_update)], temp_update[i]
-            return fix_update(mapping, temp_update)
+    for _ in range(len(update)): # We do this process len(update) times, because we can't just loop over temp_mapping while we are deleting keys from it
+        for page, dependencies in temp_mapping.items():
+            if set(dependencies) <= already_processed_pages:
+                result.append(page)
+                already_processed_pages.add(page)
+                del temp_mapping[page]
+                break
     
-    return update
+    return result
     
 
 def part1(data):
@@ -143,8 +138,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    solutions = solve(example_input)
+    # solutions = solve(example_input)
     puzzle_input = get_data(day=5, year=2024)
-    # solutions = solve(puzzle_input)
+    solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))

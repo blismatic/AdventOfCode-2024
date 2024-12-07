@@ -24,15 +24,18 @@ def parse(puzzle_input: str):
     print()
     return result
 
-def is_valid(t: int, nums: list[int]) -> bool:
+def is_valid(t: int, nums: list[int], is_p2: bool = False) -> bool:
     if len(nums) == 1: # Base case
         return nums[0] == t
     else:
         add_path = [nums[0] + nums[1]] + nums[2:]
         multiply_path = [nums[0] * nums[1]] + nums[2:]
-        if is_valid(t, add_path):
+        concat_path = [int(str(nums[0]) + str(nums[1]))] + nums[2:]
+        if is_valid(t, add_path, is_p2):
             return True
-        elif is_valid(t, multiply_path):
+        elif is_valid(t, multiply_path, is_p2):
+            return True
+        elif is_p2 and is_valid(t, concat_path, is_p2):
             return True
         else:
             return False
@@ -45,7 +48,7 @@ def part1(data):
 
 def part2(data):
     """Solve and return the answer to part 2."""
-    valid_targets = [eqs[0] for eqs in data if is_valid(eqs[0], eqs[1])]
+    valid_targets = [eqs[0] for eqs in data if is_valid(eqs[0], eqs[1], is_p2=True)]
     return sum(valid_targets)
 
 

@@ -39,13 +39,7 @@ def get_guard_position(room: dict[tuple[int, int], str]) -> tuple[int, int]:
     raise LookupError("could not find the guard (^) in the room")
 
 
-def move(curr_pos: tuple[int, int], dxy: tuple[int, int]) -> tuple[int, int]:
-    x, y = curr_pos
-    dx, dy = dxy
-    return (x + dx, y + dy)
-
-
-def move_p2(curr_pos: tuple[int, int], direction: str) -> tuple[int, int]:
+def move(curr_pos: tuple[int, int], direction: str) -> tuple[int, int]:
     x, y = curr_pos
     directions = {"N": (0, -1), "E": (1, 0), "S": (0, 1), "W": (-1, 0)}
     if direction not in directions:
@@ -54,6 +48,31 @@ def move_p2(curr_pos: tuple[int, int], direction: str) -> tuple[int, int]:
     dx, dy = directions[direction]
     return (x + dx, y + dy)
 
+def place_obstacle(grid: dict[tuple[int, int], str], obstacle_pos: tuple[int, int]) -> dict[tuple[int, int], str]:
+    grid_copy = grid.copy()
+    grid_copy[obstacle_pos] = "#"
+    return grid_copy
+
+def print_grid(grid: dict[tuple[int, int], str], guard_pos_direction = tuple[int, int, str]) -> None:
+    direction_symbols = {
+        "N": "^",
+        "E": ">",
+        "S": "v",
+        "W": "<"
+    }
+    
+    grid_copy = grid.copy()
+    guard_x, guard_y, direction = guard_pos_direction
+    grid_copy[(guard_x, guard_y)] = direction_symbols[direction]
+    
+    max_x = max(key[0] for key in grid_copy)
+    max_y = max(key[1] for key in grid_copy)
+
+    # Print each row of the grid
+    for y in range(max_y + 1):
+        row = ''.join(grid_copy.get((x, y), ' ') for x in range(max_x + 1))
+        print(row)
+
 
 def part1(data):
     """Solve and return the answer to part 1."""
@@ -61,7 +80,8 @@ def part1(data):
     guard_pos = get_guard_position(grid)
 
     # indexes 0, 1, 2, 3 map to cardinal directions N, E, S, W (turning to the right each time)
-    directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+    # directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+    directions = ["N", "E", "S", "W"]
     # if the tuples look wrong, keep in mind that (0, 0) is the top left of our grid, and it expands to the bottom right
 
     curr_pos = guard_pos
@@ -70,9 +90,9 @@ def part1(data):
 
     while grid[curr_pos] != "X":  # X is the border we padded around our entire room
         unique_positions.add(curr_pos)
-        tmp_curr_pos = move(curr_pos, dxy=curr_direction)  # This is temporary because we might not use it if we would have stepped on an obstacle
+        tmp_curr_pos = move(curr_pos, curr_direction)  # This is temporary because we might not use it if we would have stepped on an obstacle
         if grid[tmp_curr_pos] == "#":
-            curr_direction = directions[(directions.index(curr_direction) + 1) % len(directions)]  # Turn to the right
+            curr_direction = directions[(directions.index(curr_direction) + 1) % 4]  # Turn to the right
             continue
         else:
             curr_pos = tmp_curr_pos
@@ -93,11 +113,11 @@ def part2(data):
 
     while grid[curr_pos] != "X":
         original_path_unique_positions.add(curr_pos)
-        ghost_pos = move_p2(
+        ghost_pos = move(
             curr_pos, curr_direction
         )  # This is a ghost in the sense that it's not actually where we are right now, it's where we *might* be on the next step
         if grid[ghost_pos] == "#":
-            curr_direction = directions[(directions.index(curr_direction) + 1) % len(directions)]  # Turn to the right
+            curr_direction = directions[(directions.index(curr_direction) + 1) % 4]  # Turn to the right
             continue
         else:
             curr_pos = ghost_pos
@@ -110,7 +130,32 @@ def part2(data):
     # If the simulation ends as a result of coming across the same (x, y, direction), then you know that there *was* a loop
     obstacle_positions_that_cause_loops = set()
     for p in original_path_unique_positions:
+        if p == guard_pos:
+            continue # Skip the guards starting position, since you can't place an obstacle there.
+        
         new_grid = place_obstacle(grid, p)
+        curr_pos: tuple[int, int] = guard_pos
+        curr_direction = directions[0]
+        unique_positions_directions = set()
+        
+        loop_detected = False
+        while new_grid[curr_pos] != "X":
+            unique_positions_directions.add(curr_pos + (curr_direction,))
+            ghost_pos = move(curr_pos, curr_direction)
+            if new_grid[ghost_pos] == "#":
+                curr_direction = directions[(directions.index(curr_direction) + 1) % 4]
+                continue
+            elif (ghost_pos + (curr_direction,)) in unique_positions_directions:
+                loop_detected = True
+                break
+            else:
+                curr_pos = ghost_pos
+                
+        if loop_detected:
+            obstacle_positions_that_cause_loops.add(p)
+            
+    return len(obstacle_positions_that_cause_loops)
+            
 
 
 def solve(puzzle_input) -> tuple:
@@ -124,8 +169,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    solutions = solve(example_input)
+    # solutions = solve(example_input)
     puzzle_input = get_data(day=6, year=2024)
-    # solutions = solve(puzzle_input)
+    solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))

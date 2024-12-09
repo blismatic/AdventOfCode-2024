@@ -1,9 +1,10 @@
+from pprint import pprint
+
 from aocd import get_data
 from dotenv import load_dotenv
 
-from pprint import pprint
-
-example_input = """"""
+with open("01/example_input.txt", "r") as infile:
+    example_input = infile.read()
 
 
 def parse(puzzle_input: str):

@@ -8,41 +8,21 @@ with open("11/example_input.txt", "r") as infile:
     example_input = infile.read()
 
 
-def parse(puzzle_input: str):
+def parse(puzzle_input: str) -> list[int]:
     """Parse input."""
-    result = puzzle_input.split(" ")
+    result = [int(stone) for stone in puzzle_input.split(" ")]
 
-    pprint(result[:10])
+    pprint(result[:3])
     print()
     return result
 
 
-def blink(stones: list[str]) -> list[str]:
-    # Rule 1: if the stone is 0, it becomes 1
-    # Rule 2: if the stone has an even number of digits, it is replaced by two stones.
-    #         the left half of digits are on the left stone, and
-    #         the right half of digits are on the right stone.
-    #         Neither half keeps leading zeroes (e.g. 1000 -> 10 and 0)
-    # Rule 3: If rule 1 or 2 does not apply, the new stone is the old number * 2024
-    new_stones = []
-    for s in stones:
-        if s == "0":
-            new_stones.append("1")
-        elif len(s) % 2 == 0:
-            left = int(s[: len(s) // 2])
-            right = int(s[len(s) // 2 :])
-            new_stones.extend([str(left), str(right)])
-        else:
-            new_stones.append(str(int(s) * 2024))
-    return new_stones
-
-
 @cache
-def blink_p2(stone: str, n: int) -> int:
+def blink(stone: int, n: int) -> int:
     """Returns the number of stones that will appear after n number of blinks
 
     Args:
-        stone (str): The number on a given stone
+        stone (int): The number on a given stone
         n (int): How many times to blink
 
     Returns:
@@ -52,39 +32,33 @@ def blink_p2(stone: str, n: int) -> int:
     if n == 0:
         return 1
 
-    n -= 1
-
     # Rule 1
-    if int(stone) == 0:
-        return blink_p2("1", n)
+    if stone == 0:
+        return blink(1, n - 1)
 
     # Rule 2
-    if len(stone) % 2 == 0:
-        left = int(stone[: len(stone) // 2])
-        right = int(stone[len(stone) // 2 :])
-        return blink_p2(str(left), n) + blink_p2(str(right), n)
+    stone_as_str = str(stone)
+    if len(stone_as_str) % 2 == 0:
+        left = int(stone_as_str[: len(stone_as_str) // 2])
+        right = int(stone_as_str[len(stone_as_str) // 2 :])
+        return blink(left, n - 1) + blink(right, n - 1)
 
     # Rule 3
-    return blink_p2(str(int(stone) * 2024), n)
+    return blink(stone * 2024, n - 1)
 
 
-def part1(data: list[str]):
+def part1(data: list[str]) -> int:
     """Solve and return the answer to part 1."""
     d = data.copy()
-    for _ in range(25):
-        d = blink(d)
-
-    return len(d)
+    results = [blink(stone, 25) for stone in d]
+    return sum(results)
 
 
-def part2(data: list[str]):
+def part2(data: list[str]) -> int:
     """Solve and return the answer to part 2."""
     d = data.copy()
-    result = []
-    for starting_stone in d:
-        result.append(blink_p2(starting_stone, 75))
-
-    return sum(result)
+    results = [blink(stone, 75) for stone in d]
+    return sum(results)
 
 
 def solve(puzzle_input) -> tuple:

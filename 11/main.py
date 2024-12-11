@@ -1,3 +1,4 @@
+from functools import cache
 from pprint import pprint
 
 from aocd import get_data
@@ -36,6 +37,37 @@ def blink(stones: list[str]) -> list[str]:
     return new_stones
 
 
+@cache
+def blink_p2(stone: str, n: int) -> int:
+    """Returns the number of stones that will appear after n number of blinks
+
+    Args:
+        stone (str): The number on a given stone
+        n (int): How many times to blink
+
+    Returns:
+        int: The number of stones that will appear after n blinks
+    """
+    # Base case. If you don't blink at all, 1 stone will stay 1 stone.
+    if n == 0:
+        return 1
+
+    n -= 1
+
+    # Rule 1
+    if int(stone) == 0:
+        return blink_p2("1", n)
+
+    # Rule 2
+    if len(stone) % 2 == 0:
+        left = int(stone[: len(stone) // 2])
+        right = int(stone[len(stone) // 2 :])
+        return blink_p2(str(left), n) + blink_p2(str(right), n)
+
+    # Rule 3
+    return blink_p2(str(int(stone) * 2024), n)
+
+
 def part1(data: list[str]):
     """Solve and return the answer to part 1."""
     d = data.copy()
@@ -45,9 +77,14 @@ def part1(data: list[str]):
     return len(d)
 
 
-def part2(data):
+def part2(data: list[str]):
     """Solve and return the answer to part 2."""
-    pass
+    d = data.copy()
+    result = []
+    for starting_stone in d:
+        result.append(blink_p2(starting_stone, 75))
+
+    return sum(result)
 
 
 def solve(puzzle_input) -> tuple:

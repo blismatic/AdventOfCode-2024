@@ -1,9 +1,12 @@
 import copy
+import os
 import re
+import statistics
 from collections import defaultdict
 from pprint import pprint
 from typing import TypeAlias
 
+import keyboard
 from aocd import get_data
 from dotenv import load_dotenv
 
@@ -28,12 +31,11 @@ def parse(puzzle_input: str) -> Grid:
         grid[(int(px), int(py))].append((int(vx), int(vy)))
 
     pprint(result[:3])
-    # pprint(grid)
     print()
     return grid
 
 
-def simulate(g: Grid, n: int = 1) -> Grid:
+def simulate(g: Grid, n: int = 1, backwards: bool = False) -> Grid:
     new_grid = defaultdict(list)
 
     for pos in g:
@@ -42,8 +44,12 @@ def simulate(g: Grid, n: int = 1) -> Grid:
 
         for r in robots:
             vx, vy = r
-            new_x = (px + (vx * n)) % WIDTH
-            new_y = (py + (vy * n)) % HEIGHT
+            if backwards:
+                new_x = (px - (vx * n)) % WIDTH
+                new_y = (py - (vy * n)) % HEIGHT
+            else:
+                new_x = (px + (vx * n)) % WIDTH
+                new_y = (py + (vy * n)) % HEIGHT
 
             new_grid[(new_x, new_y)].append((vx, vy))
 
@@ -87,7 +93,6 @@ def split_into_quadrants(g: Grid) -> list[Grid]:
 def part1(data: Grid):
     """Solve and return the answer to part 1."""
     x = simulate(data, n=100)
-    # view_grid(x)
 
     quadrants = split_into_quadrants(x)
     robots_per_quadrant = [sum([len(robots) for pos, robots in q.items()]) for q in quadrants]
@@ -99,9 +104,37 @@ def part1(data: Grid):
     return safety_factor
 
 
-def part2(data):
+def part2(data: Grid):
     """Solve and return the answer to part 2."""
-    pass
+
+    def get_stdev(g: Grid) -> tuple[float, float]:
+        x_stdev = statistics.stdev([x for x, y in g.keys()])
+        y_stdev = statistics.stdev([y for x, y in g.keys()])
+        return (x_stdev, y_stdev)
+
+    x_stdev, y_stdev = get_stdev(data)
+    THRESHOLD = 28  # Fine tune this number
+    counter = 0
+
+    try:
+        print("Press the '.' key on your keyboard to begin searching for the christmas tree.")
+        while True:
+            if keyboard.is_pressed("."):
+                while (x_stdev > THRESHOLD) or (y_stdev > THRESHOLD):
+                    counter += 1
+                    data = simulate(data)
+                    x_stdev, y_stdev = get_stdev(data)
+                os.system("cls")
+                view_grid(data)
+                print(f"{x_stdev=}, {y_stdev=}")
+                print("Press 'q' if you see the christmas tree. Otherwise, press '.' to continue searching.")
+                x_stdev, y_stdev = (THRESHOLD * 2, THRESHOLD * 2)  # Reset standard deviation
+            elif keyboard.is_pressed("q"):
+                raise KeyboardInterrupt()
+    except KeyboardInterrupt:
+        os.system("cls")
+
+    return counter
 
 
 def solve(puzzle_input) -> tuple:

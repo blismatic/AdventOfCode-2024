@@ -78,7 +78,69 @@ def part1(data: dict[tuple[int, int], str]) -> int:
 
 def part2(data):
     """Solve and return the answer to part 2."""
-    pass
+
+    def is_same_plant(grid: dict[tuple[int, int], str], pos1: tuple[int, int], pos2: tuple[int, int]) -> bool:
+        if pos1 not in grid or pos2 not in grid:
+            return False
+        return grid[pos1] == grid[pos2]
+
+    prices = []
+
+    grid = data.copy()
+    already_visited = set()
+
+    for pos in grid:
+        if pos in already_visited:
+            continue
+
+        print(f"processing the {grid[pos]} region")
+        region_area = 0
+        region_corners = 0
+        q = deque()
+        q.append(pos)
+
+        # Keep exploring as long as the queue is not empty.
+        while q:
+            curr_pos = q.pop()
+            if curr_pos in already_visited:
+                continue
+            else:
+                already_visited.add(curr_pos)  # Add current position so that we wont ever analyze this position again
+                region_area += 1
+
+                cardinal_neighbors = [move(curr_pos, direction) for direction in ["N", "E", "S", "W"]]
+                for n in cardinal_neighbors:
+                    if n in grid and grid[n] == grid[curr_pos]:  # If the neighbor is a valid position *and* of the same plant type
+                        q.append(n)  # Add this cardinal neighbor to the q so that it will also be analyzed as part of the region
+
+                # Order is always "N", "E", "S", "W"
+                cardinal_homogenity = [is_same_plant(grid, curr_pos, cn) for cn in cardinal_neighbors]
+                if cardinal_homogenity in (
+                    [True, True, False, False],
+                    [False, True, True, False],
+                    [False, False, True, True],
+                    [True, False, False, True],
+                ):
+                    region_corners += 1
+                elif sum(cardinal_homogenity) == 1:  # On a row by itself, meaning it has 2 corners
+                    region_corners += 2
+                elif sum(cardinal_homogenity) == 0:  # Single plant region, thus it itself is 4 corners
+                    region_corners += 4
+                elif sum(cardinal_homogenity) == 4:  # If all neighbors are of the same type, then check diagonals
+                    diagonal_neighbors = [
+                        move(cardinal_pos, direction) for cardinal_pos, direction in zip(cardinal_neighbors, ["E", "S", "W", "N"])
+                    ]  # NE, SE, SW, NW
+                    diagonal_homogenity = [is_same_plant(grid, curr_pos, dn) for dn in diagonal_neighbors]
+                    region_corners += sum(diagonal_homogenity)
+
+        # After the queue is empty, we know that the region has been fully explored
+        region_sides = region_corners
+        region_price = region_area * region_sides
+        prices.append(region_price)
+        print(f"plant: {grid[pos]}, sides: {region_sides}, area: {region_area}")
+
+    result = sum(prices)
+    return result
 
 
 def solve(puzzle_input) -> tuple:
@@ -92,8 +154,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    # solutions = solve(example_input)
+    solutions = solve(example_input)
     puzzle_input = get_data(day=12, year=2024)
-    solutions = solve(puzzle_input)
+    # solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))

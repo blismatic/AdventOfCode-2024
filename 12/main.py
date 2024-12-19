@@ -4,7 +4,7 @@ from pprint import pprint
 from aocd import get_data
 from dotenv import load_dotenv
 
-with open("12/example.txt", "r") as infile:
+with open("12/example_input.txt", "r") as infile:
     example_input = infile.read()
 
 
@@ -26,7 +26,7 @@ def parse(puzzle_input: str):
 
 
 def move(pos: tuple[int, int], direction: str) -> tuple[int, int]:
-    dirs = {"N": (0, 1), "E": (1, 0), "S": (0, -1), "W": (-1, 0)}
+    dirs = {"N": (0, 1), "E": (1, 0), "S": (0, -1), "W": (-1, 0), "NE": (1, 1), "SE": (1, -1), "SW": (-1, -1), "NW": (-1, 1)}
 
     x, y = pos
     dx, dy = dirs[direction]
@@ -93,7 +93,7 @@ def part2(data):
         if pos in already_visited:
             continue
 
-        print(f"processing the {grid[pos]} region")
+        # print(f"processing the {grid[pos]} region")
         region_area = 0
         region_corners = 0
         q = deque()
@@ -102,42 +102,75 @@ def part2(data):
         # Keep exploring as long as the queue is not empty.
         while q:
             curr_pos = q.pop()
+            curr_plant = grid[curr_pos]
             if curr_pos in already_visited:
                 continue
-            else:
-                already_visited.add(curr_pos)  # Add current position so that we wont ever analyze this position again
-                region_area += 1
 
-                cardinal_neighbors = [move(curr_pos, direction) for direction in ["N", "E", "S", "W"]]
-                for n in cardinal_neighbors:
-                    if n in grid and grid[n] == grid[curr_pos]:  # If the neighbor is a valid position *and* of the same plant type
-                        q.append(n)  # Add this cardinal neighbor to the q so that it will also be analyzed as part of the region
+            already_visited.add(curr_pos)  # Add current position so that we wont ever analyze this position again
+            region_area += 1
+            cardinal_neighbor_positions = [move(curr_pos, direction) for direction in ["N", "E", "S", "W"]]
+            for n in cardinal_neighbor_positions:
+                if n in grid and grid[n] == grid[curr_pos]:  # If the neighbor is a valid position *and* of the same plant type
+                    q.append(n)  # Add this cardinal neighbor to the q so that it will also be analyzed as part of the region
 
-                # Order is always "N", "E", "S", "W"
-                cardinal_homogenity = [is_same_plant(grid, curr_pos, cn) for cn in cardinal_neighbors]
-                if cardinal_homogenity in (
-                    [True, True, False, False],
-                    [False, True, True, False],
-                    [False, False, True, True],
-                    [True, False, False, True],
-                ):
+            # * Calculate corners *
+            # cardinal_neighbors always in order [N, E, S, W]
+            # diag_neighbors always in order [NE, SE, SW, NW]
+            cardinal_neighbors = [grid[move(curr_pos, n)] if move(curr_pos, n) in grid else "#" for n in ["N", "E", "S", "W"]]
+            diag_neighbors = [grid[move(curr_pos, n)] if move(curr_pos, n) in grid else "#" for n in ["NE", "SE", "SW", "NW"]]
+            cardinal_homogenity = [(cn == curr_plant) for cn in cardinal_neighbors]
+            diag_homogenity = [(dn == curr_plant) for dn in diag_neighbors]
+
+            # If no cardinal neighbors are of the same type, corners += 4
+            if sum(cardinal_homogenity) == 0:
+                region_corners += 4
+
+            # If only one cardinal neighbor is of the same type, that position represents 2 corners:
+            if sum(cardinal_homogenity) == 1:
+                region_corners += 2
+
+            # If two cardinal neighbors are of the same type, then check if the same-neighbors are side by side (N+E, E+S, S+W, or N+W)
+            if sum(cardinal_homogenity) == 2:
+                if cardinal_homogenity in [[1, 1, 0, 0], [0, 1, 1, 0], [0, 0, 1, 1], [1, 0, 0, 1]]:
                     region_corners += 1
-                elif sum(cardinal_homogenity) == 1:  # On a row by itself, meaning it has 2 corners
-                    region_corners += 2
-                elif sum(cardinal_homogenity) == 0:  # Single plant region, thus it itself is 4 corners
-                    region_corners += 4
-                elif sum(cardinal_homogenity) == 4:  # If all neighbors are of the same type, then check diagonals
-                    diagonal_neighbors = [
-                        move(cardinal_pos, direction) for cardinal_pos, direction in zip(cardinal_neighbors, ["E", "S", "W", "N"])
-                    ]  # NE, SE, SW, NW
-                    diagonal_homogenity = [is_same_plant(grid, curr_pos, dn) for dn in diagonal_neighbors]
-                    region_corners += sum(diagonal_homogenity)
+
+                    # If side by side were same, check diagonal in that direction. If it is different, that's also an extra corner
+                    if (cardinal_homogenity == [1, 1, 0, 0]) and not diag_homogenity[0]:
+                        region_corners += 1
+                    elif (cardinal_homogenity == [0, 1, 1, 0]) and not diag_homogenity[1]:
+                        region_corners += 1
+                    elif (cardinal_homogenity == [0, 0, 1, 1]) and not diag_homogenity[2]:
+                        region_corners += 1
+                    elif (cardinal_homogenity == [1, 0, 0, 1]) and not diag_homogenity[3]:
+                        region_corners += 1
+
+            # If three neighbors are same type, check diag neighbors
+            if sum(cardinal_homogenity) == 3:
+                # NE different, N and E are same
+                if (diag_homogenity[0] is False) and (cardinal_homogenity[0] is True and cardinal_homogenity[1] is True):
+                    region_corners += 1
+
+                # SE different, E and S are same
+                if (diag_homogenity[1] is False) and (cardinal_homogenity[1] is True and cardinal_homogenity[2] is True):
+                    region_corners += 1
+
+                # SW different, S and W are same
+                if (diag_homogenity[2] is False) and (cardinal_homogenity[2] is True and cardinal_homogenity[3] is True):
+                    region_corners += 1
+
+                # NW different, W and N are same
+                if (diag_homogenity[3] is False) and (cardinal_homogenity[3] is True and cardinal_homogenity[0] is True):
+                    region_corners += 1
+
+            # If four cardinal neighbors are of the same type, then check the diagonal neighbors:
+            # Add 1 corner for each diagonal neighbor that is different than the plant
+            if sum(cardinal_homogenity) == 4:
+                region_corners += sum([1 for dn in diag_neighbors if dn != curr_plant])
 
         # After the queue is empty, we know that the region has been fully explored
         region_sides = region_corners
         region_price = region_area * region_sides
         prices.append(region_price)
-        print(f"plant: {grid[pos]}, sides: {region_sides}, area: {region_area}")
 
     result = sum(prices)
     return result
@@ -154,8 +187,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    solutions = solve(example_input)
+    # solutions = solve(example_input)
     puzzle_input = get_data(day=12, year=2024)
-    # solutions = solve(puzzle_input)
+    solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))

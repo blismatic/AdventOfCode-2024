@@ -1,6 +1,5 @@
 from pprint import pprint
 
-import matplotlib.pyplot as plt
 import networkx as nx
 from aocd import get_data
 from dotenv import load_dotenv
@@ -50,31 +49,23 @@ def parse(puzzle_input: str) -> tuple[nx.DiGraph, complex]:
     return (result, START)
 
 
-def complex_path_to_cartesian(path: list[tuple[complex, complex]]) -> list[tuple[int, int, str]]:
-    result = []
-
-    for node in path:
-        # print(node)
-        pos, dir = node
-        x = int(pos.real)
-        y = int(pos.imag)
-        cardinals = {1j: "S", 1: "E", -1j: "N", -1: "W"}
-        face = cardinals[dir]
-        result.append((x, y, face))
-        print(x, y, face)
-
-    return result
-
-
 def part1(data: tuple[nx.DiGraph, complex]) -> int:
     """Solve and return the answer to part 1."""
     graph, start = data
     return nx.shortest_path_length(G=graph, source=(start, 1), target="final", weight="weight")
 
 
-def part2(data):
+def part2(data: tuple[nx.DiGraph, complex]) -> int:
     """Solve and return the answer to part 2."""
-    pass
+    graph, start = data
+    paths = nx.all_shortest_paths(G=graph, source=(start, 1), target="final", weight="weight")
+
+    best_positions = set()
+    for path in paths:
+        for pos, dir in path[:-1]:
+            best_positions.add(pos)
+
+    return len(best_positions)
 
 
 def solve(puzzle_input) -> tuple:

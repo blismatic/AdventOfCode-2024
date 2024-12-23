@@ -25,14 +25,13 @@ def part1(data: nx.Graph) -> int:
     """Solve and return the answer to part 1."""
     triplets = [clique for clique in nx.enumerate_all_cliques(data) if len(clique) == 3]
     t_computer_triplets = [clique for clique in triplets if any(node.startswith("t") for node in clique)]
-
-    # print(t_computer_triplets)
     return len(t_computer_triplets)
 
 
 def part2(data: nx.Graph) -> str:
     """Solve and return the answer to part 2."""
-    pass
+    max_clique = max(nx.find_cliques(data), key=len)
+    return ",".join(sorted(max_clique))
 
 
 def solve(puzzle_input) -> tuple:
@@ -46,8 +45,8 @@ def solve(puzzle_input) -> tuple:
 
 if __name__ == "__main__":
     load_dotenv()
-    solutions = solve(example_input)
+    # solutions = solve(example_input)
     puzzle_input = get_data(day=23, year=2024)
-    # solutions = solve(puzzle_input)
+    solutions = solve(puzzle_input)
 
     print("\n".join(str(solution) for solution in solutions))
